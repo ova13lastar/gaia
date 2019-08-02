@@ -74,20 +74,20 @@ class Addict:
         if self.check_error == 0:
             # On verifie la section [general]
             self._check_ini_processus()
-            # self._check_ini_archivage()
-            # self._check_ini_date_reception()
-            # self._check_ini_index_metier()
-            # self._check_ini_nir()
-            # self._check_ini_nom()
-            # self._check_ini_siret()
-            # self._check_ini_finess_ps()
-            # self._check_ini_date_evenement()
-            # self._check_ini_num_dossier()
-            # self._check_ini_commentaire()
-            # # On verifie la section [attachments]
-            # self._check_ini_attachments_typedoc0()
-            # self._check_ini_attachments_fichier0()
-            # self._check_ini_attachments_others()
+            self._check_ini_archivage()
+            self._check_ini_date_reception()
+            self._check_ini_index_metier()
+            self._check_ini_nir()
+            self._check_ini_nom()
+            self._check_ini_siret()
+            self._check_ini_finess_ps()
+            self._check_ini_date_evenement()
+            self._check_ini_num_dossier()
+            self._check_ini_commentaire()
+            # On verifie la section [attachments]
+            self._check_ini_attachments_typedoc0()
+            self._check_ini_attachments_fichier0()
+            self._check_ini_attachments_others()
         # On renvoie un bool comme resultat
         log.debug(f"self.check_error = {self.check_error}")
         if self.check_error == 0:
@@ -106,28 +106,24 @@ class Addict:
         # On verifie que les sections existent bien
         for s in ydt.get_ini_tuple(self.addict_conf.get("ini", "sections")):
             if not self.ini_conf.has_section(s):
-                log.error(f"Section {s} inexistante")
+                log.error(f"Section inexistante : {s}")
                 self.check_error += 1
                 return False
         for k, v in self.addict_conf.items("general_keys"):
             # On verifie que les cles de la section [general] existent bien
             if not self.ini_conf.has_option("general", k):
-                log.error(f"Cle {k}= inexistante")
+                log.error(f"Cle inexistante : {k}=")
                 self.check_error += 1
             # On verifie que les valeurs obligatoires de la section [general] sont bien renseignees
-            elif bool(v) and self.data[data_id] == "":
-                log.error(f"Valeur obligatoire manquante pour la cle {k}=")
+            vbool = self.addict_conf.getboolean("general_keys", k)
+            if vbool and self.ini_conf.get("general", k) == "":
+                log.error(f"Valeur obligatoire manquante pour la cle : {k}=")
                 self.check_error += 1
 
     def _check_ini_processus(self):
         data_id = "processus"
         self.data[data_id] = str.strip(self.ini_conf.get("general", data_id))
-        # # On verifie que les cles sont renseignes pour certains processus (regles metiers)
-        # for k, v in self.addict_conf.items("general_keys"):
-        #     if data_id == k and bool(v) and self.data[data_id] == "":
-        #         log.error(f"Valeur obligatoire manquante pour la cle {data_id}= alors que {k}={v}")
-        #         self.check_error += 1
-        # On verifie que les cles sont renseignes pour les autres processus (regles metiers)
+        # On verifie que les cles sont renseignes pour les processus particuliers (regles metiers)
         if self.data[data_id] not in self.addict_conf.items("general_processus_key_rules") and \
                 self.ini_conf.get("general", "nir") == "" and \
                 self.ini_conf.get("general", "nom") == "":
@@ -141,7 +137,7 @@ class Addict:
     def _check_ini_archivage(self):
         data_id = "archivage"
         self.data[data_id] = int(str.strip(self.ini_conf.get("general", data_id)))
-        if self.data[data_id] not in ydt.get_ini_tuple(self.addict_conf.get("ini", data_id), "int"):
+        if self.data[data_id] not in ydt.get_ini_tuple(self.addict_conf.get("general", data_id), "int"):
             log.error(f"Valeur incorrecte pour {data_id}={self.data[data_id]}")
             self.check_error += 1
 
@@ -155,10 +151,11 @@ class Addict:
             except ValueError:
                 log.error(f"Date incorrecte (format: AAAAMMJJ) pour {data_id}={self.data[data_id]}")
                 self.check_error += 1
-            # On verifie que la date n'est pas superieure a la date du jour
-            if datetime.datetime.strptime(self.data[data_id], "%Y%m%d") > datetime.datetime.now():
-                log.error(f"Date superieure a la date du jour pour {data_id}={self.data[data_id]}")
-                self.check_error += 1
+            else:
+                # On verifie que la date n'est pas superieure a la date du jour
+                if datetime.datetime.strptime(self.data[data_id], "%Y%m%d") > datetime.datetime.now():
+                    log.error(f"Date superieure a la date du jour pour {data_id}={self.data[data_id]}")
+                    self.check_error += 1
 
     def _check_ini_index_metier(self):
         data_id = "index_metier"
@@ -230,14 +227,15 @@ class Addict:
             except ValueError:
                 log.error(f"Date incorrecte (format: AAAAMMJJ) pour {data_id}={self.data[data_id]}")
                 self.check_error += 1
-            # On verifie que la date_evenement n'est pas superieure a la date du jour
-            if datetime.datetime.strptime(self.data[data_id], "%Y%m%d") > datetime.datetime.now():
-                log.error(f"Date superieure a la date du jour pour {data_id}={self.data[data_id]}")
-                self.check_error += 1
-            # On verifie que la date_evenement n'est pas superieure a la date_reception
-            if datetime.datetime.strptime(self.data[data_id], "%Y%m%d") > datetime.datetime.strptime(self.data["date_reception"], "%Y%m%d"):
-                log.error(f"Date superieure a la date de reception pour {data_id}={self.data[data_id]}")
-                self.check_error += 1
+            else:
+                # On verifie que la date_evenement n'est pas superieure a la date du jour
+                if datetime.datetime.strptime(self.data[data_id], "%Y%m%d") > datetime.datetime.now():
+                    log.error(f"Date superieure a la date du jour pour {data_id}={self.data[data_id]}")
+                    self.check_error += 1
+                # On verifie que la date_evenement n'est pas superieure a la date_reception
+                if datetime.datetime.strptime(self.data[data_id], "%Y%m%d") > datetime.datetime.strptime(self.data["date_reception"], "%Y%m%d"):
+                    log.error(f"Date superieure a la date de reception pour {data_id}={self.data[data_id]}")
+                    self.check_error += 1
 
     def _check_ini_num_dossier(self):
         data_id = "num_dossier"
@@ -245,7 +243,7 @@ class Addict:
         if self.data[data_id] != "":
             # On verifie la longueur max
             if len(self.data_nom) > 30:
-                print("Impossible de mettre plus de 30 caracteres pour " + data_id + "=" + self.data[data_id] + " dans : " + self.get_inifile_path())
+                log.error(f"Impossible de mettre plus de 30 caracteres pour {data_id}={self.data[data_id]}")
                 self.check_error += 1
 
     def _check_ini_commentaire(self):
@@ -311,6 +309,6 @@ class Addict:
             log.error(f"Fichier inexistant pour {key}={value}")
             self.check_error += 1
         # On verifie que le fichier a une taille inferieure ou egale a celle attendue
-        if os.path.getsize(file_path) > self.addict_conf.get("attachments", "max_size"):
+        if os.path.getsize(file_path) > self.addict_conf.getint("attachments", "max_size"):
             log.error(f"Poids du fichier trop lourd ({ydt.convert_filesize(os.path.getsize(file_path))}) pour {key}={value}")
             self.check_error += 1
