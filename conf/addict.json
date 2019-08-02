@@ -1,0 +1,71 @@
+{
+    // Fichier ini
+    "ini": {
+        // Extension du fichier .ini
+        "extension": ".ini",
+        // Sections du fichier .ini
+        "sections": [
+            "general",
+            "fichiers"
+        ],
+        // Dans section [general] => cle: obligatoire?
+        "general_keys": {
+            "processus": true,
+            "archivage": true,
+            "date_reception": false,
+            "index_metier": false,
+            "nir": false,
+            "nom": false,
+            "siret": false,
+            "finess_ps": false,
+            "date_evenement": false,
+            "num_dossier": false,
+            "commentaire": false
+        },
+        // Règles d'obligation entre un processus et une cle
+        "processus_key_rules": {
+            "Fichiers PS": "finess_ps",
+            "Fichiers Employeurs": "siret"
+        },
+        // Liste des processus geres par ADDICT
+        "processus": [
+            "AME",
+            "ASS",
+            "Capital décès",
+            "CMUC / ACS",
+            "DIVERS",
+            "Fichiers Employeurs",
+            "Fichiers PS",
+            "FSP_LAD",
+            "GDB",
+            "IJ AS Maternité Paternité",
+            "IJ AT/MP",
+            "Invalidité",
+            "RCT",
+            "Rentes",
+            "RI"
+        ],
+        // Liste des valeurs possibles pour la cle archivage
+        "archivage": [
+            0,
+            1
+        ]
+    },
+    // Fichiers joints
+    "attachments": {
+        // Extensions possibkles des fichiers joints
+        "extensions": [
+            ".pdf",
+            ".tif",
+            "tiff",
+            ".jpg",
+            ".jpeg",
+            ".bmp",
+            ".png"
+        ],
+        // Taille max = 5 Mo
+        "max_size": 5242880,
+        // Nombre max de fichiers joints
+        "max_files": 10
+    }
+}
