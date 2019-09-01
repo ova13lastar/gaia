@@ -19,22 +19,31 @@ class Gaia:
         try:
             # Chargement de la configuration applicative
             self.app_conf = ydt.load_ini_file(os.path.join('.', os.path.join(CONF_DIR_NAME, APP_CONF_FILE_NAME)))
-            # Chargement de la configuration addict
-            self.addict_conf = ydt.load_ini_file(os.path.join('.', os.path.join(CONF_DIR_NAME, ADDICT_CONF_FILE_NAME)))
-            # Chemin racine ou se trouvent les elements a traiter
-            self.root_path = self._init_root_path()
-            # Chemin des archives
-            self.archives_path = self._init_binding_folders_path(self.app_conf["dirnames"]["archives"])
-            # Chemin des rejets
-            self.rejets_path = self._init_binding_folders_path(self.app_conf["dirnames"]["rejets"])
-            # Initialisations diverses
-            self.attachments_extensions = ydt.get_ini_tuple(self.addict_conf.get("attachments", "extensions"))
-            self.curpath = None
-            self.files = None
+            # # Chargement de la configuration addict
+            # self.addict_conf = ydt.load_ini_file(os.path.join('.', os.path.join(CONF_DIR_NAME, ADDICT_CONF_FILE_NAME)))
+            # # Chemin racine ou se trouvent les elements a traiter
+            # self.root_path = self._init_root_path()
+            # # Chemin des archives
+            # self.archives_path = self._init_binding_folders_path(self.app_conf["dirnames"]["archives"])
+            # # Chemin des rejets
+            # self.rejets_path = self._init_binding_folders_path(self.app_conf["dirnames"]["rejets"])
+            # # Initialisations diverses
+            # self.attachments_extensions = ydt.get_ini_tuple(self.addict_conf.get("attachments", "extensions"))
+            # self.curpath = None
+            # self.files = None
+            self.infodata = None
         except:
             log.exception(f"{FATAL_ERROR} : echec de l'initialiation de la classe {__name__}")
             sys.exit(1)
 
+    def app_conf(self):
+        return self.app_conf
+
+    def check_infodata(self):
+        # print(self.app_conf)
+        print(infodata_.InfoData(os.path.join("D:/Python_dev/gaia_src/RENTE/2019080220080400001", INFODATA_FILE_NAME)))
+
+    @ydt.fdebug
     def scan_root_path(self):
         """ Scan complet du chemin racine (root_path)
         """
@@ -46,21 +55,13 @@ class Gaia:
             log.info("-------------------------------------------------")
             log.info(f"self.curpath = {self.curpath}")
             # -------------------------------------------------
-            # ROOT : On log la presence de fichiers a la racine
-            if self.curpath == self.root_path and len(self.files) > 0:
-                log.warning(f"Fichiers detectes ({len(self.files)}) dans le repertoire de base : {self.curpath}")
-                for f in self.files:
-                    log.warning(f"| -- {f}")
+            # ROOT : On verifie la presence de fichiers a la racine
+            if self.curpath == self.root_path:
+                self._check_files_in_root_folder(self.files)
             # -------------------------------------------------
             # Si directories contient d'autres repertoires : on laisse le dossier de cote (continue)
             elif len(directories) > 0:
-                log.info(f"directories contient d'autres repertoires :")
-                for d in directories:
-                    log.info(f"| -- {d}")
-                if len(self.files) > 0:
-                    log.info(f"directories contient aussi des fichiers :")
-                    for f in self.files:
-                        log.info(f"| -- {f}")
+                self._check_directories(directories, self.files)
                 continue
             # -------------------------------------------------
             # DOSSIERS : On verifie la coherence des dossiers
@@ -71,15 +72,6 @@ class Gaia:
                     log.warning(f"Dossier deja bloque : {self.curpath}")
                     break
                 # -----------------
-                # VARIABLES : On reinitialise la list des messages
-                tentative_msg = []
-                # On récupère les infodata du dossier (fichier .json)
-                infodata = infodata_.InfoData(os.path.join(self.curpath, self.app_conf.get("filenames", "infodata")))
-                # On cree une list des fichiers en minuscule
-                files_lower = [item.lower() for item in self.files]
-                # On recupere le nombre de fichiers ini
-                inifile_count = sum(1 for f in files_lower if f.endswith(self.addict_conf.get("ini", "extension")))
-                # -----------------
                 # FICHIER LOCKED : Si un des fichiers est en cours d'utilisation : on laisse le dossier de cote (continue)
                 if [f for f in self.files if ydt.check_file_lock(os.path.join(self.curpath, f))]:
                     for f in self.files:
@@ -87,37 +79,31 @@ class Gaia:
                             log.info(f"Un fichier est en cours d'utilisation : {os.path.join(self.curpath, f)}")
                     continue
                 # -----------------
-                # WARNINGS : Si il manque des fichiers : on log
-                if len(self.files) < int(self.app_conf["utils"]["min_files_by_folder"]):
-                    tentative_msg.append(f"Nombre de fichiers trop faible ({len(self.files)})")
-                    for f in self.files:
-                        log.warning(f"| -- {f}")
-                # Sinon si il manque le fichier .ini : on log
-                elif not [f for f in files_lower if f.endswith(self.addict_conf.get("ini", "extension"))]:
-                    tentative_msg.append(f'Pas de fichier {self.addict_conf.get("ini", "extension")} detecte')
-                # Sinon si il y a plus d'un fichier .ini : on log
-                elif inifile_count > 1:
-                    tentative_msg.append(f'Plusieurs fichiers {self.addict_conf.get("ini", "extension")} ({inifile_count}) detectes')
-                # Sinon si des fichiers n'ont pas la bonne extension : on log
-                elif not [f for f in files_lower if f.endswith(self.attachments_extensions)]:
-                    tentative_msg.append(f"Fichiers avec une extension incorrecte detectes")
-                    for f in self.files:
-                        log.warning(f"| -- {f}")
-                # Sinon si il y a plus de 10 fichiers : on log
-                elif [f for f in files_lower if f.endswith(self.attachments_extensions) and len(self.files)-1 > self.addict_conf.getint("attachments", "max_files")]:
-                    tentative_msg.append(f"Nombre de fichiers joints trop grand ({len(self.files)-1})")
-                # On enregistre la tentative dans le fichier infodata
-                if len(tentative_msg) > 0:
-                    infodata.set_tentative(tentative_msg)
+                # Chargement du fichier infodata.gaia du dossier en cours
+                self.infodata = infodata_.InfoData(os.path.join(self.curpath, INFODATA_FILE_NAME))
+                # On cree une list des fichiers en minuscule
+                files_lower = [item.lower() for item in self.files]
+                # On verifie si il manque des fichiers
+                self._check_missing_files(files_lower)
+                # On verifie si le fichier ini est present et unique
+                self._check_ini_file(files_lower)
+                # On verifie si le nombre d'attachments est valide
+                self._check_attachments_count(files_lower)
+                # On verifie si les attachments ont une extension valide
+                self._check_attachments_extensions(files_lower)
                 # -------------------------------------------------
-                # SINON : on rajoute le dossier dans la list des dossiers a gerer
+                # SI ERREUR : On enregistre la tentative dans le fichier infodata
+                if self.infodata.get_error_count() > 0:
+                    self.infodata.add_tentative()
+                # SINON : L'injection semble possible
                 else:
-                    log.info(f"INJECTION POSSIBLE !!!")
+                    log.info(f"===> INJECTION POSSIBLE <===")
+                    self.infodata.clear_error_msg_list()
                     try:
                         log.info("-------------------------------------------------")
                         log.info(f"LOCK du repertoire : {self.curpath}")
                         locked_path = ydt.lock(self.curpath)
-                        addict = addict_.Addict(locked_path, self.addict_conf)
+                        addict = addict_.Addict(locked_path)
                         if addict.check_ini() and addict.check_attachments():
                             addict.inject()
                     except Exception as e:
@@ -125,7 +111,9 @@ class Gaia:
                     finally:
                         log.info(f"UNLOCK du repertoire : {self.curpath}")
                         ydt.unlock(self.curpath + LOCK_EXTENSION)
-                    break
+                    # break
+
+    # -------------------------------------------------
 
     @ydt.fdebug
     def _init_root_path(self):
@@ -165,3 +153,98 @@ class Gaia:
             log.critical(f"{FATAL_ERROR} : lors de la creation du dossier des {folder_name} : {archives_path}")
             raise
         return folder_path
+
+    @ydt.fdebug
+    def _check_files_in_root_folder(self, files):
+        """ Permet de verifier et tracer si des fichiers sont present dans le root_path
+
+        Args:
+            files (files): List des fichiers present a la racine
+        """
+        if len(files) > 0:
+            log.warning(f"Des fichiers ont ete detectes ({len(files)}) dans le repertoire de base : {self.curpath}")
+            for f in files:
+                log.warning(f"| -- {f}")
+
+    @ydt.fdebug
+    def _check_directories(self, directories, files):
+        log.info(f"directories contient d'autres repertoires :")
+        for d in directories:
+            log.info(f"| -- {d}")
+        if len(files) > 0:
+            log.warning(f"directories contient aussi des fichiers :")
+            for f in files:
+                log.warning(f"| -- {f}")
+
+    @ydt.fdebug
+    def _check_missing_files(self, files):
+        """ Permet de verifier si des fichiers obligatoires sont manquants
+
+        Args:
+            files ([list]): List des fichiers à vérifier
+        """
+        if INFODATA_FILE_NAME in files:
+            files.remove(INFODATA_FILE_NAME)
+        if len(files) < int(self.app_conf["utils"]["min_files_by_folder"]):
+            self.infodata.add_error_msg(f"Nombre de fichiers trop faible : {len(files)}")
+            log.error(self.infodata.get_last_msg())
+            for f in files:
+                log.error(f"| -- {f}")
+
+    @ydt.fdebug
+    def _check_ini_file(self, files):
+        """ Permet de verifier si fichier ini present et unique
+
+        Args:
+            files ([list]): List des fichiers à vérifier
+        """
+        if INFODATA_FILE_NAME in files:
+            files.remove(INFODATA_FILE_NAME)
+        if not [f for f in files if f.endswith(CONF_FILE_EXTENSION)]:
+            self.infodata.add_error_msg(f'Pas de fichier {CONF_FILE_EXTENSION} detecte')
+            log.error(self.infodata.get_last_msg())
+        inifile_count = sum(1 for f in files if f.endswith(CONF_FILE_EXTENSION))
+        if inifile_count > 1:
+            self.infodata.add_error_msg(f'Plusieurs fichiers {CONF_FILE_EXTENSION} ({inifile_count}) detectes')
+            log.error(self.infodata.get_last_msg())
+
+    @ydt.fdebug
+    def _check_attachments_count(self, files):
+        """ Permet de verifier si le nombre d'attachments est correct
+
+        Args:
+            files ([list]): List des fichiers à vérifier
+        """
+        if INFODATA_FILE_NAME in files:
+            files.remove(INFODATA_FILE_NAME)
+        attachements_count = sum(1 for f in files if f.endswith(self.attachments_extensions) and not f.endswith(CONF_FILE_EXTENSION))
+        if int(attachements_count) > self.addict_conf.getint("attachments", "max_files"):
+            self.infodata.add_error_msg(f"Nombre de fichiers joints trop grand : {attachements_count}")
+            log.error(self.infodata.get_last_msg())
+        if int(attachements_count) < 1:
+            self.infodata.add_error_msg(f"Nombre de fichier joints trop petit : {attachements_count}")
+            log.error(self.infodata.get_last_msg())
+
+    @ydt.fdebug
+    def _check_attachments_extensions(self, files):
+        """ Permet de verifier si les attachments ont bien une extension valide
+
+        Args:
+            files ([list]): List des fichiers à vérifier
+        """
+        error_count = 0
+        error_files = []
+        if INFODATA_FILE_NAME in files:
+            files.remove(INFODATA_FILE_NAME)
+        for f in files:
+            if f.endswith(CONF_FILE_EXTENSION):
+                files.remove(f)
+                continue
+            if not f.endswith(self.attachments_extensions):
+                error_files.append(f)
+                error_count += 1
+        if error_count > 0:
+            self.infodata.add_error_msg(f"Nb de fichiers avec une extension incorrecte : {error_count}")
+            log.error(self.infodata.get_last_msg())
+            for f in error_files:
+                log.error(f"| -- {f}")

@@ -20,6 +20,7 @@ log = logging.getLogger()
 class YdLogFormatter(logging.Formatter):
     """ Surcharge du logging.Formatter pour gerer correctement les decorateurs
     """
+
     def format(self, record):
         if hasattr(record, 'func_name_override'):
             record.funcName = record.func_name_override
@@ -64,12 +65,13 @@ def fdebug(func):
             'func_name_override': func.__name__,
             'func_module_override': func.__module__,
             'func_lineno_override': inspect.unwrap(func).__code__.co_firstlineno
-            }
+        }
         for k, v in bound_args.arguments.items():
             if k != "self":
                 log.debug(f"Arg => {k} = {v!r}", extra=extra_dict)
         value = func(*args, **kwargs)
-        log.debug(f"Ret => {value!r}", extra=extra_dict)
+        if value is not None:
+            log.debug(f"Ret => {value!r}", extra=extra_dict)
         return value
     return _debug
 
@@ -248,5 +250,5 @@ def convert_filesize(size):
     size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
     i = int(math.floor(math.log(size, 1024)))
     p = math.pow(1024, i)
-    s = round(size/p, 2)
+    s = round(size / p, 2)
     return '%s %s' % (s, size_name[i])
