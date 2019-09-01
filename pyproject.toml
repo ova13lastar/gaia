@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "gaia"
+version = "0.1.0"
+description = ""
+authors = ["ova13lastar <ova13lastar@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+
+[tool.poetry.dev-dependencies]
+pytest = "^3.0"
+autopep8 = "^1.4"
+black = { version = "*", allows-prereleases = true }
+flake8 = "*"
+flake8-bugbear = "*"
+isort = "*"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
