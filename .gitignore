@@ -1,5 +1,35 @@
-.venv/
-.git/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.venv
+.builds/
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+# Logs
 *.log
-*__pycache__/
-*.py.*
+logs/*
+
+# Sphinx documentation
+docs/_build/
+
+# PyTest
+.pytest_cache/

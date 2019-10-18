@@ -1,9 +1,0 @@
-README.rst
-setup.py
-gaia/__init__.py
-gaia/__main__.py
-gaia/config.py
-gaia.egg-info/PKG-INFO
-gaia.egg-info/SOURCES.txt
-gaia.egg-info/dependency_links.txt
-gaia.egg-info/top_level.txt
